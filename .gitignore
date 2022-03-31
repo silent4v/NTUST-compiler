@@ -1,0 +1,3 @@
+bin
+*.o
+lex.yy.cc

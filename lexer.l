@@ -4,59 +4,17 @@
 #include <functional>
 #include <cstdio>
 #include <vector>
+#include "colorized.hh"
+
 #define MAX_LINE_LENG 256
-#define GREEN   "\033[32m"
-#define CYAN    "\033[36m"
-#define RED     "\033[31m"
-#define MAGENTA "\033[35m"
-#define RESET   "\033[0m"
-#define YELLOW  "\033[33m"
-#define BLUE    "\033[34m"
+
 int linenum = 1;
 
-bool ignoreFlag = false;
 std::string buf = "";
 
-std::string toUpper(const char* t) {
-  std::string value(t);
-  std::for_each(value.begin(), value.end(), [](auto& ch) {
-    ch = toupper(ch);
-  });
-  return value;
-}
-
-void operators(const char* t, std::string operatorType)
+void token(std::string&& token, std::string desc)
 {
-  std::string value(t);
-  std::for_each(value.begin(), value.end(), [](auto& ch) {
-    ch = toupper(ch);
-  });
-  std::cout << "<'"
-            << MAGENTA << value << RESET
-            << "' : " << operatorType << ">\n";
-}
-
-void symbol(const char* t)
-{
-  auto value = toUpper(t);
-  std::cout << "<'"
-            << BLUE << value << RESET
-            << "'>\n";
-}
-
-void keyWord(const char* t)
-{
-  auto value = toUpper(t);
-  std::cout << "<'"
-            << GREEN << value << RESET
-            << "'>\n";
-}
-
-void tokenValue(const char* t, std::string value)
-{
-  std::cout << "<'"
-            << RED << t << RESET
-            <<  "' : " << value << ">\n";
+  printf("<'%s' : %s> \n", token.c_str(), desc.c_str());
 }
 
 %}
@@ -65,6 +23,7 @@ void tokenValue(const char* t, std::string value)
 %option noyywrap
 %option yylineno
 %option debug
+%x COMMENT_STATE
 
 multiCommentStart \/\*
 multiCommentEnd \*\/
@@ -137,93 +96,73 @@ space   [ \t]*
 
 {arithmetic} {
   buf += YYText();
-  if(!ignoreFlag) operators(YYText(), "arithmetic");
+  token(operators(YYText()), "arithmetic");
 }
 
 {assignment} {
   buf += YYText();
-  if(!ignoreFlag) operators(YYText(), "assignment");
+  token(operators(YYText()), "arithmetic");
 }
 
 {number}  {
   buf += YYText();
-  if(!ignoreFlag) {
-    tokenValue(YYText(), "number");
-  }
+  token(id(YYText()), "number");
 }
 
 {string}  {
   buf += YYText();
   auto literalValue = std::string(YYText()).substr(1, strlen(YYText())-2);
   literalValue.replace(literalValue.find("\"\""), 2, "\"");
-  if(!ignoreFlag) {
-    tokenValue(literalValue.c_str(), "string");
-  }
+  token(id(literalValue.c_str()), "string");
 }
 
 {boolean} {
   buf += YYText();
-  if(!ignoreFlag) {
-    tokenValue(YYText(), "boolean");
-  }
+  token(id(YYText()), "boolean");
 }
 
 {lt} {
   buf += YYText();
-  if(!ignoreFlag) {
-    operators(YYText(), "$lt");
-  }
+  token(operators(YYText()), "$lt");
 }
+
 {lte} {
   buf += YYText();
-  if(!ignoreFlag) {
-    operators(YYText(), "$lte");
-  }
+  token(operators(YYText()), "$lte");
 }
+
 {gt} {
   buf += YYText();
-  if(!ignoreFlag) {
-  operators(YYText(), "$gt");
-  }
+  token(operators(YYText()), "$gt");
 }
+
 {gte} {
   buf += YYText();
-  if(!ignoreFlag) {
-    operators(YYText(), "$gte");
-  }
+  token(operators(YYText()), "$gte");
 }
 {eq} {
   buf += YYText();
-  if(!ignoreFlag) {
-    operators(YYText(), "$eq");
-  }
+  token(operators(YYText()), "$eq");
 }
+
 {ne} {
   buf += YYText();
-  if(!ignoreFlag) {
-    operators(YYText(), "$ne");
-  }
+  token(operators(YYText()), "$ne");
 }
 
 {delimiter} {
   buf += YYText();
-  if(!ignoreFlag) {
-    symbol(YYText());
-  }
+  token(symbol(YYText()), "symbol");
 }
 
 {keywords} {
   buf += YYText();
-  if(!ignoreFlag) {
-    keyWord(YYText());
-  }
+  token(keyword(YYText()), "keyword");
 }
 
 {identifier} {
   buf += YYText();
-  if(!ignoreFlag) {
-    tokenValue(YYText(), "identifier");
-  }
+  token(id(YYText()), "identifier");
 }
 
 {signalComment} {
@@ -233,49 +172,54 @@ space   [ \t]*
 }
 
 {multiCommentStart} {
-  ignoreFlag = true;
   buf += YELLOW;
   buf += YYText();
-  buf += RESET;
+  BEGIN(COMMENT_STATE);
 }
 
-{multiCommentEnd} {
-  ignoreFlag = false;
-  buf += YELLOW;
+<COMMENT_STATE>{multiCommentEnd} {
   buf += YYText();
   buf += RESET;
+  BEGIN(INITIAL);
 }
 
 {newline}   {
   buf += YYText();
-  auto empty = std::all_of(buf.begin(), buf.end(), [](auto& ch){
-    return ch == ' ' || ch == '\n';
+  auto isEmpty = std::all_of(buf.cbegin(), buf.cend(), [](auto& ch) {
+    return ch == ' ' | ch == '\r' | ch == '\n' | ch == '\t';
   });
-  if(empty) {
-    printf("line %02d: %s<EMPTY>%s\n\n", linenum, CYAN, RESET);
-  } else {
-    std::string colorize = (ignoreFlag ? YELLOW : RESET);
-    printf("line %02d: %s%s%s\n", linenum, 
-      (ignoreFlag ? YELLOW : RESET), buf.c_str(), RESET
-    );
-  }
+  auto output = isEmpty ? std::string(CYAN) + "<EMPTY>" + RESET + "\n" : buf;
+  printf("%sline %02d: %s\n", RESET, linenum, output.c_str());
   linenum++;
   buf = "";
 }
+
+<COMMENT_STATE>{newline} {
+  buf += YYText();
+  auto isEmpty = std::all_of(buf.cbegin(), buf.cend(), [](auto& ch) {
+    return ch == ' ' | ch == '\r' | ch == '\n' | ch == '\t';
+  });
+  auto output = isEmpty ? std::string(CYAN) + "<EMPTY>" + RESET + "\n" : buf;
+  printf("%sline %02d: %s\n", RESET, linenum, output.c_str());
+  linenum++;
+  buf = YELLOW;
+}
+
 
 {space}     {
   buf += YYText();
 }
 
 .           {
-  if(ignoreFlag) {
-    buf += YYText();
-  } else {
-    std::cout << "line " << linenum <<":" << buf.size()+1 << " " << buf;
-    std::cout << "\nbad character: '" << YYText() << "'" << '\n';
-    exit(-1);
-  }
+  std::cout << "line " << linenum <<":" << buf.size()+1 << " " << buf;
+  std::cout << "\nbad character: '" << YYText() << "'" << '\n';
+  exit(-1);
 }
+
+<COMMENT_STATE>. {
+  buf += YYText();
+}
+
 %%
 #include <fstream>
 #include <iostream>

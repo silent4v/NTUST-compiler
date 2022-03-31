@@ -1,15 +1,18 @@
-CC = /usr/bin/g++
+CC = g++
+CCFLAGS   := -I./utils -std=c++14 -g
 INCDIR    := $(shell pwd)
 LEXFILE = $(INCDIR)/lexer.l
 LEXCPP  = lex.yy.cc
-all: bin
 
-gen:
+all: exec
+
+exec: pre
 	lex -o $(LEXCPP) -+ $(LEXFILE)
+	$(CC) $(CCFLAGS) -o ./bin/lexer $(LEXCPP) ./utils/colorized.hh
 
-bin: gen
+pre:
 	mkdir -p bin
-	$(CC) -std=c++14 $(LEXCPP) -o ./bin/lexer
+	mkdir -p bin/utils
 
 clean:
 	rm -rf ./bin/*
