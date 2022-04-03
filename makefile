@@ -6,13 +6,17 @@ LEXCPP  = lex.yy.cc
 
 all: exec
 
-exec: pre
+exec: uitls
 	lex -o $(LEXCPP) -+ $(LEXFILE)
-	$(CC) $(CCFLAGS) -o ./bin/lexer $(LEXCPP) ./utils/colorized.hh
+	$(CC) $(CCFLAGS) -o ./bin/lexer $(LEXCPP) ./bin/utils/colorized.o ./bin/utils/symbolTable.o
 
 pre:
 	mkdir -p bin
 	mkdir -p bin/utils
+
+uitls:
+	g++ -fPIC -g -c ./utils/colorized.cc -o ./bin/utils/colorized.o
+	g++ -fPIC -g -c ./utils/symbolTable.cc -o ./bin/utils/symbolTable.o
 
 clean:
 	rm -rf ./bin/*
