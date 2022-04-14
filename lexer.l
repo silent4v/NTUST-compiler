@@ -1,10 +1,15 @@
 %{
+#include <fstream>
+#include <iostream>
+#include <memory>
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <cstring>
+
 #include "colorized.hh"
 #include "symbolTable.hh"
+
 #define SCAN buf += (YYText())
 #define MAX_LINE_LENG 256
 
@@ -226,9 +231,6 @@ space   [ \t]*
 }
 
 %%
-#include <fstream>
-#include <iostream>
-#include <memory>
 
 int main(int argc, char** argv)
 {

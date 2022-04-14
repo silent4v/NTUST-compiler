@@ -4,7 +4,7 @@ INCDIR    := $(shell pwd)
 LEXFILE = $(INCDIR)/lexer.l
 LEXCPP  = lex.yy.cc
 
-all: exec
+all: pre exec
 
 exec: uitls
 	lex -o $(LEXCPP) -+ $(LEXFILE)
