@@ -1,9 +1,9 @@
 #include "colorized.hh"
 
 template<typename T>
-std::function<std::string(T&& msg)> colorized(const char* ColorCode)
+std::function<std::string(const T msg)> colorized(const char* ColorCode)
 {
-  return [ColorCode](T&& message) -> T {
+  return [ColorCode](const T message) -> T {
     std::stringstream ss;
     ss << ColorCode << message << RESET;
     return ss.str();

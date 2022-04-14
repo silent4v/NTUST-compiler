@@ -4,6 +4,7 @@
 #include <map>
 #include <deque>
 #include <iostream>
+#include <iomanip>
 #include <utility>
 #include "colorized.hh"
 
@@ -21,7 +22,7 @@ public:
   void create();
   void lookup();
   void insert(const char* name, std::string type);
-  void dump();
+  void dump() const;
 private:
   std::deque<Symbol> layer_;
   int  currentLayer_;

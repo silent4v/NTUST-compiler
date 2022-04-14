@@ -26,15 +26,13 @@ void SymbolTable::insert(const char* name, std::string type)
   this->layer_.push_back(symbol);
 }
 
-void SymbolTable::dump()
+void SymbolTable::dump() const
 {
   std::cout << cyan("DUMP") << " Symbol Table: \n";
   for(auto&& symbol : this->layer_) 
   {
-    std::cout << id(std::move(symbol.name)) 
-              << "[" 
-              << keyword(std::move(symbol.type))
-              << "]" 
-               << "\n";
+    std::cout << std::setfill(' ') << std::setw(15+10) <<id(symbol.name);
+    std::cout << "[" << keyword(symbol.type) << "]"
+              << "\n";
   }
 }

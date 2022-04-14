@@ -16,7 +16,7 @@
 
 
 template<typename T>
-std::function<std::string(T&& msg)> colorized(const char* ColorCode);
+std::function<std::string(const T msg)> colorized(const char* ColorCode);
 
 void reset();
 
