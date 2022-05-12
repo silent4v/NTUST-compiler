@@ -1,6 +1,9 @@
 bin
 *.o
 lex.yy.cc
+scanner.cc
+scanner.hh
+lexer.cc
 GPATH
 GRTAGS
 GTAGS

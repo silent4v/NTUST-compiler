@@ -1,27 +1,36 @@
 CC = g++
-CCFLAGS   := -I./utils -std=c++14 -g
+CCFLAGS   := -I./utils -g
 INCDIR    := $(shell pwd)
 LEXFILE = $(INCDIR)/lexer.l
 LEXCPP  = lex.yy.cc
 
-all: pre exec
+all: pre bin
 
-exec: uitls
-	lex -o $(LEXCPP) -+ $(LEXFILE)
-	$(CC) $(CCFLAGS) -o ./bin/lexer $(LEXCPP) ./bin/utils/colorized.o ./bin/utils/symbolTable.o
+bin: utils scanner lex
+	$(CC) $(CCFLAGS) -o ./bin/scanner  ./lexer.o ./scanner.o ./bin/colorized.o ./bin/symbolTable.o
+
+lex:
+	flex -d -o lexer.cc $(LEXFILE)
+	$(CC) $(CCFLAGS) -c lexer.cc
+
+scanner:
+	bison -d scanner.y -o scanner.cc
+	$(CC) $(CCFLAGS) -c scanner.cc
+
+utils: pre
+	g++ -fPIC -g -c ./utils/colorized.cc -o ./bin/colorized.o
+	g++ -fPIC -g -c ./utils/symbolTable.cc -o ./bin/symbolTable.o
 
 pre:
 	mkdir -p bin
-	mkdir -p bin/utils
-
-uitls:
-	g++ -fPIC -g -c ./utils/colorized.cc -o ./bin/utils/colorized.o
-	g++ -fPIC -g -c ./utils/symbolTable.cc -o ./bin/utils/symbolTable.o
-
-clean:
-	rm -rf ./bin/*
-	rm -rf lex.yy.cc
 
 test: clean bin
 	./bin/lexer ./Example/example.kt
 	./bin/lexer ./Example/fib.kt
+
+clean:
+	@rm -rf ./bin/*
+	@rm -rf lex.yy.cc
+	@rm -f scanner.cc scanner.hh
+	@rm -f lexer.cc
+	@rm -f *.o

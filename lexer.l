@@ -1,20 +1,16 @@
 %{
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <algorithm>
-#include <iostream>
-#include <iomanip>
-#include <cstring>
 
+
+#include "type.hh"
 #include "colorized.hh"
 #include "symbolTable.hh"
+#include "scanner.hh"
 
-#define SCAN buf += (YYText())
+#define SCAN buf += (yytext)
 #define MAX_LINE_LENG 256
 
 int linenum = 1;
-extern char yytext[];
+extern char* yytext;
 auto st = std::make_unique<SymbolTable>();
 std::string buf = "";
 std::string declType = "";
@@ -41,10 +37,8 @@ void newLineDetect(std::string& buf)
 
 %}
 
-%option c++
 %option noyywrap
 %option yylineno
-%option debug
 
 %x COMMENT_STATE
 %x DECLARE_VAR_STATE
@@ -121,84 +115,84 @@ space   [ \t]*
 %%
 
 
-{number}     { SCAN; token(id(YYText()), "NUMBER");              }
-{boolean}    { SCAN; token(id(YYText()), "BOOL");                }
+{number}     { SCAN; token(id(yytext), "NUMBER");              }
+{boolean}    { SCAN; token(id(yytext), "BOOL");                }
 {string}  {
-  buf += YYText();
-  auto literalValue = std::string(YYText()).substr(1, strlen(YYText())-2);
+  buf += yytext;
+  auto literalValue = std::string(yytext).substr(1, strlen(yytext)-2);
   while(literalValue.find("\"\"") != std::string::npos) {
     literalValue.replace(literalValue.find("\"\""), 2, "\"");
   }
   token(id(literalValue.c_str()), "STRING");
 }
 
-{arithmetic} { SCAN; token(operators(YYText()), "CALCULATE"); }
-{assignment} { SCAN; token(operators(YYText()), "ASSIGN");    }
-{lt}  { SCAN; token(operators(YYText()), "$LT");    }
-{lte} { SCAN; token(operators(YYText()), "$LTE");   }
-{gt}  { SCAN; token(operators(YYText()), "$GT");    }
-{gte} { SCAN; token(operators(YYText()), "$GTE");   }
-{eq}  { SCAN; token(operators(YYText()), "$EQ");    }
-{ne}  { SCAN; token(operators(YYText()), "$NE");    }
+{arithmetic} { SCAN; token(operators(yytext), "CALCULATE"); }
+{assignment} { SCAN; token(operators(yytext), "ASSIGN");    }
+{lt}  { SCAN; token(operators(yytext), "$LT");    }
+{lte} { SCAN; token(operators(yytext), "$LTE");   }
+{gt}  { SCAN; token(operators(yytext), "$GT");    }
+{gte} { SCAN; token(operators(yytext), "$GTE");   }
+{eq}  { SCAN; token(operators(yytext), "$EQ");    }
+{ne}  { SCAN; token(operators(yytext), "$NE");    }
 
-{delimiter}  { SCAN; token(symbol(YYText()), "SYMBOL");   }
+{delimiter}  { SCAN; token(symbol(yytext), "SYMBOL");   }
 
-"val"|"var" { 
-  SCAN; 
-  token(keyword(YYText()), "KEYWORD");
-  declType = (strcmp(YYText(), "var") == 0) ? "variable" : "const variable";
+"val"|"var" {
+  SCAN;
+  token(keyword(yytext), "KEYWORD");
+  declType = (strcmp(yytext, "var") == 0) ? "variable" : "const variable";
   BEGIN(DECLARE_VAR_STATE);
 }
 
 "fun"|"class" {
-  SCAN; 
-  token(keyword(YYText()), "KEYWORD");
-  declType = (strcmp(YYText(), "class") == 0) ? "class" : "function";
+  SCAN;
+  token(keyword(yytext), "KEYWORD");
+  declType = (strcmp(yytext, "class") == 0) ? "class" : "function";
   BEGIN(DECLARE_SCOPE_STATE);
 }
 
-{keywords}   { SCAN; token(keyword(YYText()), "KEYWORD"); }
-{identifier} { SCAN; token(id(YYText()), "IDENTIFIER");   }
+{keywords}   { SCAN; token(keyword(yytext), "KEYWORD"); }
+{identifier} { SCAN; token(id(yytext), "IDENTIFIER");   }
 
 <DECLARE_VAR_STATE>{identifier} {
   SCAN;
-  st->insert(YYText(), declType);
-  token(id(YYText()), declType);
+  st->insert(yytext, declType);
+  token(id(yytext), declType);
   BEGIN(INITIAL);
 }
 
 <DECLARE_SCOPE_STATE>{identifier} {
   SCAN;
-  st->insert(YYText(), declType);
-  token(id(YYText()), declType);
+  st->insert(yytext, declType);
+  token(id(yytext), declType);
   if(declType == "class") {
     BEGIN(INITIAL);
   }
 }
 
-<DECLARE_SCOPE_STATE>"(" { SCAN; token(symbol(YYText()), "SYMBOL"); BEGIN(DECLARE_ARGS_STATE); }
-<DECLARE_ARGS_STATE>{type}  { SCAN; token(keyword(YYText()), "KEYWORD"); }
-<DECLARE_ARGS_STATE>":"|"," { SCAN; token(symbol(YYText()), "SYMBOL"); }
+<DECLARE_SCOPE_STATE>"(" { SCAN; token(symbol(yytext), "SYMBOL"); BEGIN(DECLARE_ARGS_STATE); }
+<DECLARE_ARGS_STATE>{type}  { SCAN; token(keyword(yytext), "KEYWORD"); }
+<DECLARE_ARGS_STATE>":"|"," { SCAN; token(symbol(yytext), "SYMBOL"); }
 <DECLARE_ARGS_STATE>{identifier} {
   SCAN;
   declType = "parameter";
-  st->insert(YYText(), declType);
-  token(id(YYText()), "parameter");
+  st->insert(yytext, declType);
+  token(id(yytext), "parameter");
 }
-<DECLARE_ARGS_STATE>")" { SCAN; token(symbol(YYText()), "SYMBOL"); BEGIN(INITIAL); }
+<DECLARE_ARGS_STATE>")" { SCAN; token(symbol(yytext), "SYMBOL"); BEGIN(INITIAL); }
 
 {signalComment} {
-  buf += comment(YYText());
+  buf += comment(yytext);
 }
 
 {multiCommentStart} {
   buf += YELLOW;
-  buf += YYText();
+  buf += yytext;
   BEGIN(COMMENT_STATE);
 }
 
 <COMMENT_STATE>{multiCommentEnd} {
-  buf += comment(YYText());
+  buf += comment(yytext);
   BEGIN(INITIAL);
 }
 
@@ -216,39 +210,39 @@ space   [ \t]*
 
 
 
-<INITIAL,COMMENT_STATE,DECLARE_VAR_STATE,DECLARE_SCOPE_STATE,DECLARE_ARGS_STATE>{space}     { 
+<INITIAL,COMMENT_STATE,DECLARE_VAR_STATE,DECLARE_SCOPE_STATE,DECLARE_ARGS_STATE>{space}     {
   SCAN;
 }
 
 .           {
   std::cout << "line " << linenum <<":" << buf.size()+1 << " " << buf;
-  std::cout << "\nbad character: '" << YYText() << "'" << '\n';
+  std::cout << "\nbad character: '" << yytext << "'" << '\n';
   exit(-1);
 }
 
 <COMMENT_STATE>. {
-  buf += YYText();
+  buf += yytext;
 }
 
 %%
 
-int main(int argc, char** argv)
-{
-  std::ifstream file;
-  std::unique_ptr<yyFlexLexer> lexer;
+// int main(int argc, char** argv)
+// {
+//   std::ifstream file;
+//   std::unique_ptr<yyFlexLexer> lexer;
 
-  if( argc > 0 ) {
-    file.open(argv[1]);
-    std::cout << "filename: " << argv[1] << "\n\n";
-    lexer = std::make_unique<yyFlexLexer>(&file, &std::cout);
-  } else {
-    lexer = std::make_unique<yyFlexLexer>();
-  }
-  while(lexer->yylex() != 0);
-  std::cout << "line " << std::right << std::setfill('0') << std::setw(2) << linenum << ": "
-            << buf << "\n\n";
+//   if( argc > 0 ) {
+//     file.open(argv[1]);
+//     std::cout << "filename: " << argv[1] << "\n\n";
+//     lexer = std::make_unique<yyFlexLexer>(&file, &std::cout);
+//   } else {
+//     lexer = std::make_unique<yyFlexLexer>();
+//   }
+//   while(lexer->yylex() != 0);
+//   std::cout << "line " << std::right << std::setfill('0') << std::setw(2) << linenum << ": "
+//             << buf << "\n\n";
 
-  std::cout << std::setfill('=') << std::setw(60) << "\n";
-  st->dump();
-  return 0;
-}
+//   std::cout << std::setfill('=') << std::setw(60) << "\n";
+//   st->dump();
+//   return 0;
+// }
