@@ -55,10 +55,11 @@ multiCommentEnd \*\/
 signalComment \/\/[^\n]*
 comment       \/\/.*\n
 
+arrow     ->
+
 comma     ,
 colon     :
 semi      ;
-arrow     ->
 lParent   \(
 rParent   \)
 lsBrack   \[
@@ -68,7 +69,7 @@ rBrack    \}
 delimiter {comma}|{colon}|{semi}|{lParent}|{rParent}|{lsBrack}|{rsBrack}|{lBrack}|{rBrack}
 
 digit      [0-9]
-integer    {digit}+
+integer    (\+|\-)?{digit}+
 real       (\+|\-)?{integer}\.{integer}
 scientific {integer}e(\+|\-)?{integer}
 number     {real}|{scientific}|{integer}
@@ -106,13 +107,10 @@ cOperator {cAdd}|{cSub}|{cMul}|{cDiv}
 
 boolean   true|false
 condition if|else|case
-loops     loop|while|for|break|continue
-declares  val|var|declare|class|fun
-type      bool|string|int|float
-etc       do|exit|print|println|return
-keywords  {condition}|{loops}|{declares}|{type}|{etc}
+loops     while|for|break|continue|in|\.\.
+type      bool|boolean|string|int|integer|float
+stmtkey   print|println|read|return
 
-rval {number}|{string}|{boolean}
 newline (\r)*\n(\r)*
 space   [ \t]*
 
@@ -153,19 +151,19 @@ space   [ \t]*
   }
   token(id(literalValue.c_str()), "STRING");
   yylval.type = T_STRING;
-  return STRING;
+  return STRING_VALUE;
 }
 
 {type} {
   SCAN;
   token(symbol(yytext), "KEYWORD");
-  if( IS_SAME(yytext, "bool") ) 
+  if( IS_SAME(yytext, "bool") || IS_SAME(yytext, "boolean") )
     return BOOL;
-  else if( IS_SAME(yytext, "int") ) 
+  if( IS_SAME(yytext, "int") || IS_SAME(yytext, "integer") ) 
     return INT;
-  else if( IS_SAME(yytext, "float") ) 
+  if( IS_SAME(yytext, "float") ) 
     return FLOAT;
-  else if( IS_SAME(yytext, "string") ) 
+  if( IS_SAME(yytext, "string") ) 
     return STRING;
 }
 
@@ -203,11 +201,39 @@ space   [ \t]*
   return IS_SAME(yytext, "fun") ? FUN : CLASS;
 }
 
-{keywords}   { SCAN; token(keyword(yytext), "KEYWORD"); }
+{loops} {
+  SCAN;
+  token(keyword(yytext), "KEYWORD");
+  if( IS_SAME(yytext, "while") ) return WHILE;
+  if( IS_SAME(yytext, "for") ) return FOR;
+  if( IS_SAME(yytext, "break") ) return BREAK;
+  if( IS_SAME(yytext, "continue") ) return CONTINUE;
+  if( IS_SAME(yytext, "in") ) return IN;
+  if( IS_SAME(yytext, "..") ) return RANGE;
+}
+
+{condition} {
+  SCAN;
+  token(keyword(yytext), "KEYWORD");
+  if( IS_SAME(yytext, "if") ) return IF;
+  if( IS_SAME(yytext, "else") ) return ELSE;
+  if( IS_SAME(yytext, "case") ) return CASE;
+}
+
+{stmtkey} {
+  SCAN;
+  token(keyword(yytext), "KEYWORD");
+  if( IS_SAME(yytext, "print")) return PRINT;
+  if( IS_SAME(yytext, "println")) return PRINTLN;
+  if( IS_SAME(yytext, "read")) return READ;
+  if( IS_SAME(yytext, "return")) return RETURN;
+}
+
 {identifier} { 
   SCAN; 
   token(id(yytext), "IDENTIFIER");
-  yylval.context = yytext;
+  yylval.context.first = yytext;
+  yylval.context.second = 0;
   return IDENTIFIER;
 }
 
