@@ -7,10 +7,10 @@ class Test
   val b:bool = true
 
   // mutable declare
-  var s: string
-  var i = 10
-  var d: float
-  var b: bool = false
+  var s1: string
+  var i2 = 10
+  var d3: float
+  var b4: bool = false
 
   // function declare
   fun main () {
