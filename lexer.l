@@ -1,11 +1,10 @@
 %{
-
-
 #include "type.hh"
 #include "colorized.hh"
 #include "symbolTable.hh"
 #include "scanner.hh"
 
+#define IS_SAME(a, b) (strcmp((a), (b)) == 0)
 #define SCAN buf += (yytext)
 #define MAX_LINE_LENG 256
 
@@ -14,12 +13,17 @@ extern char* yytext;
 auto st = std::make_unique<SymbolTable>();
 std::string buf = "";
 std::string declType = "";
+bool lexHint = false;
+bool tokenFlow = false;
 
 void token(std::string&& token, std::string desc)
 {
-  std::cout << "<";
-  std::cout << std::left << std::setfill(' ') << std::setw(20) << ("'" + token + "'");
-  std::cout << " : " << desc << ">\n";
+  if(lexHint)
+  {
+    std::cout << "<";
+    std::cout << std::left << std::setfill(' ') << std::setw(20) << ("'" + token + "'");
+    std::cout << " : " << desc << "> \n";
+  }
 }
 
 void newLineDetect(std::string& buf)
@@ -29,8 +33,12 @@ void newLineDetect(std::string& buf)
   });
   std::string output = isEmpty ? cyan("<EMPTY>") + "\n" : buf;
   reset();
-  std::cout << "line " << std::right << std::setfill('0') << std::setw(2) << linenum << " :"
-            << output  << std::endl;
+  if(tokenFlow)
+  {
+    std::cout << "line "
+              << std::right << std::setfill('0') << std::setw(2) << linenum << " :"
+              << output ;
+  }
   linenum++;
   buf.clear();
 }
@@ -41,9 +49,6 @@ void newLineDetect(std::string& buf)
 %option yylineno
 
 %x COMMENT_STATE
-%x DECLARE_VAR_STATE
-%x DECLARE_SCOPE_STATE
-%x DECLARE_ARGS_STATE
 
 multiCommentStart \/\*
 multiCommentEnd \*\/
@@ -60,7 +65,7 @@ lsBrack   \[
 rsBrack   \]
 lBrack    \{
 rBrack    \}
-delimiter {comma}|{colon}|{semi}|{arrow}|{lParent}|{rParent}|{lsBrack}|{rsBrack}|{lBrack}|{rBrack}
+delimiter {comma}|{colon}|{semi}|{lParent}|{rParent}|{lsBrack}|{rsBrack}|{lBrack}|{rBrack}
 
 digit      [0-9]
 integer    {digit}+
@@ -68,6 +73,7 @@ real       (\+|\-)?{integer}\.{integer}
 scientific {integer}e(\+|\-)?{integer}
 number     {real}|{scientific}|{integer}
 
+identifier {alpha}({alpha}|{digit})*
 alpha     [A-Za-z]
 string    \"(.)*(\"\")?(.)*\"
 
@@ -84,7 +90,6 @@ gt      >
 gte     >=
 eq      ==
 ne      !=
-relational {lt}|{lte}|{gt}|{gte}|{eq}|{ne}
 
 and     &
 or      |
@@ -103,20 +108,43 @@ boolean   true|false
 condition if|else|case
 loops     loop|while|for|break|continue
 declares  val|var|declare|class|fun
-type      bool|char|string|int|float
+type      bool|string|int|float
 etc       do|exit|print|println|return
-keywords  {boolean}|{condition}|{loops}|{declares}|{type}|{etc}
+keywords  {condition}|{loops}|{declares}|{type}|{etc}
 
-identifier {alpha}({alpha}|{digit})*
 rval {number}|{string}|{boolean}
 newline (\r)*\n(\r)*
 space   [ \t]*
 
 %%
+{boolean}    {
+  SCAN;
+  token(id(yytext), "BOOL");
+  yylval.type = T_BOOL;
+  return BOOL_VALUE;
+}
 
+{integer} {
+  SCAN;
+  token(id(yytext), "NUMBER");
+  yylval.type = T_INT;
+  return INT_VALUE;
+}
 
-{number}     { SCAN; token(id(yytext), "NUMBER");              }
-{boolean}    { SCAN; token(id(yytext), "BOOL");                }
+{real} {
+  SCAN;
+  token(id(yytext), "NUMBER");
+  yylval.type = T_FLOAT;
+  return FLOAT_VALUE;
+}
+
+{scientific} {
+  SCAN;
+  token(id(yytext), "NUMBER");
+  yylval.type = T_FLOAT;
+  return FLOAT_VALUE;
+}
+
 {string}  {
   buf += yytext;
   auto literalValue = std::string(yytext).substr(1, strlen(yytext)-2);
@@ -124,62 +152,64 @@ space   [ \t]*
     literalValue.replace(literalValue.find("\"\""), 2, "\"");
   }
   token(id(literalValue.c_str()), "STRING");
+  yylval.type = T_STRING;
+  return STRING;
 }
 
-{arithmetic} { SCAN; token(operators(yytext), "CALCULATE"); }
-{assignment} { SCAN; token(operators(yytext), "ASSIGN");    }
-{lt}  { SCAN; token(operators(yytext), "$LT");    }
-{lte} { SCAN; token(operators(yytext), "$LTE");   }
-{gt}  { SCAN; token(operators(yytext), "$GT");    }
-{gte} { SCAN; token(operators(yytext), "$GTE");   }
-{eq}  { SCAN; token(operators(yytext), "$EQ");    }
-{ne}  { SCAN; token(operators(yytext), "$NE");    }
+{type} {
+  SCAN;
+  token(symbol(yytext), "KEYWORD");
+  if( IS_SAME(yytext, "bool") ) 
+    return BOOL;
+  else if( IS_SAME(yytext, "int") ) 
+    return INT;
+  else if( IS_SAME(yytext, "float") ) 
+    return FLOAT;
+  else if( IS_SAME(yytext, "string") ) 
+    return STRING;
+}
 
-{delimiter}  { SCAN; token(symbol(yytext), "SYMBOL");   }
+{arithmetic} {
+  SCAN;
+  token(operators(yytext), "CALCULATE");
+  return *yytext;
+}
+
+{delimiter} {
+  SCAN;
+  token(symbol(yytext), "SYMBOL");
+  return *yytext;
+}
+
+{assignment} { SCAN; token(operators(yytext), "ASSIGN"); return '='; }
+{lt}  { SCAN; token(operators(yytext), "$LT");  return LT;  }
+{lte} { SCAN; token(operators(yytext), "$LTE"); return LTE; }
+{gt}  { SCAN; token(operators(yytext), "$GT");  return GT;  }
+{gte} { SCAN; token(operators(yytext), "$GTE"); return GTE; }
+{eq}  { SCAN; token(operators(yytext), "$EQ");  return EQ;  }
+{ne}  { SCAN; token(operators(yytext), "$NE");  return NE;  }
 
 "val"|"var" {
   SCAN;
   token(keyword(yytext), "KEYWORD");
-  declType = (strcmp(yytext, "var") == 0) ? "variable" : "const variable";
-  BEGIN(DECLARE_VAR_STATE);
+  declType = (IS_SAME(yytext, "var")) ? "variable" : "const variable";
+  return (IS_SAME(yytext, "var")) ? VAR : VAL;
 }
 
 "fun"|"class" {
   SCAN;
   token(keyword(yytext), "KEYWORD");
   declType = (strcmp(yytext, "class") == 0) ? "class" : "function";
-  BEGIN(DECLARE_SCOPE_STATE);
+  return IS_SAME(yytext, "fun") ? FUN : CLASS;
 }
 
 {keywords}   { SCAN; token(keyword(yytext), "KEYWORD"); }
-{identifier} { SCAN; token(id(yytext), "IDENTIFIER");   }
-
-<DECLARE_VAR_STATE>{identifier} {
-  SCAN;
-  st->insert(yytext, declType);
-  token(id(yytext), declType);
-  BEGIN(INITIAL);
+{identifier} { 
+  SCAN; 
+  token(id(yytext), "IDENTIFIER");
+  yylval.context = yytext;
+  return IDENTIFIER;
 }
-
-<DECLARE_SCOPE_STATE>{identifier} {
-  SCAN;
-  st->insert(yytext, declType);
-  token(id(yytext), declType);
-  if(declType == "class") {
-    BEGIN(INITIAL);
-  }
-}
-
-<DECLARE_SCOPE_STATE>"(" { SCAN; token(symbol(yytext), "SYMBOL"); BEGIN(DECLARE_ARGS_STATE); }
-<DECLARE_ARGS_STATE>{type}  { SCAN; token(keyword(yytext), "KEYWORD"); }
-<DECLARE_ARGS_STATE>":"|"," { SCAN; token(symbol(yytext), "SYMBOL"); }
-<DECLARE_ARGS_STATE>{identifier} {
-  SCAN;
-  declType = "parameter";
-  st->insert(yytext, declType);
-  token(id(yytext), "parameter");
-}
-<DECLARE_ARGS_STATE>")" { SCAN; token(symbol(yytext), "SYMBOL"); BEGIN(INITIAL); }
 
 {signalComment} {
   buf += comment(yytext);
@@ -208,9 +238,7 @@ space   [ \t]*
   buf = YELLOW;
 }
 
-
-
-<INITIAL,COMMENT_STATE,DECLARE_VAR_STATE,DECLARE_SCOPE_STATE,DECLARE_ARGS_STATE>{space}     {
+{space}     {
   SCAN;
 }
 
@@ -225,24 +253,3 @@ space   [ \t]*
 }
 
 %%
-
-// int main(int argc, char** argv)
-// {
-//   std::ifstream file;
-//   std::unique_ptr<yyFlexLexer> lexer;
-
-//   if( argc > 0 ) {
-//     file.open(argv[1]);
-//     std::cout << "filename: " << argv[1] << "\n\n";
-//     lexer = std::make_unique<yyFlexLexer>(&file, &std::cout);
-//   } else {
-//     lexer = std::make_unique<yyFlexLexer>();
-//   }
-//   while(lexer->yylex() != 0);
-//   std::cout << "line " << std::right << std::setfill('0') << std::setw(2) << linenum << ": "
-//             << buf << "\n\n";
-
-//   std::cout << std::setfill('=') << std::setw(60) << "\n";
-//   st->dump();
-//   return 0;
-// }
