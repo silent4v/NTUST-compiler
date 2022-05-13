@@ -21,10 +21,11 @@ public:
   void exit();
   void insert(std::string name, uint8_t type);
   Pair lookup(std::string name);
-  void insert(const char* name, std::string type);
+  void insert(const char *name, std::string type);
   void dump() const;
+
 private:
-  Table& currentScope_();
+  Table &currentScope_();
   std::vector<Layer> layer_;
   int layerIndex_;
   bool debug_;

@@ -103,55 +103,42 @@ expression:
    $$ = $2;
  }
 | expression LT expression {
-    // std::cout << "operator< : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_BOOL);
   }
 | expression LTE expression {
-    // std::cout << "operator<= : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_BOOL);
   }
 | expression GT expression {
-    // std::cout << "operator> : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_BOOL);
   }
 | expression GTE expression {
-    // std::cout << "operator>= : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_BOOL);
   }
 | expression EQ expression {
-    // std::cout << "operator== : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_BOOL);
   }
 | expression NE expression {
-    // std::cout << "operator!= : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_BOOL);
   }
 | expression '+' expression {
-    // std::cout << "operator+ : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_INT);
   }
 | expression '-' expression {
-    // std::cout << "operator- : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_INT);
   }
 | expression '*' expression {
-    // std::cout << "operator* : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_INT);
   }
 | expression '/' expression {
-    // std::cout << "operator/ : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_INT);
   }
 | expression '%' expression {
-    // std::cout << "operator% : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_INT);
   }
 | expression '|' expression {
-    // std::cout << "operator| : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_INT);
   }
 | expression '&' expression {
-    // std::cout << "operator& : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
     $$ = std::make_pair("" , T_INT);
   }
 | val

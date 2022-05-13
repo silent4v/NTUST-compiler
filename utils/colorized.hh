@@ -1,22 +1,21 @@
 #ifndef _COLORIZED_H_
 #define _COLORIZED_H_
 
-#include <iostream>
 #include <functional>
+#include <iostream>
 #include <sstream>
 #include <string>
 
-#define RED     "\033[0;31m"
-#define GREEN   "\033[0;32m"
-#define YELLOW  "\033[0;33m"
-#define BLUE    "\033[0;34m"
-#define PURPLE  "\033[0;35m"
-#define CYAN    "\033[0;36m"
-#define RESET   "\033[0;37m"
+#define RED "\033[0;31m"
+#define GREEN "\033[0;32m"
+#define YELLOW "\033[0;33m"
+#define BLUE "\033[0;34m"
+#define PURPLE "\033[0;35m"
+#define CYAN "\033[0;36m"
+#define RESET "\033[0;37m"
 
-
-template<typename T>
-std::function<std::string(const T msg)> colorized(const char* ColorCode);
+template <typename T>
+std::function<std::string(const T msg)> colorized(const char *ColorCode);
 
 void reset();
 
