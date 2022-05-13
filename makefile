@@ -7,10 +7,15 @@ LEXCPP  = lex.yy.cc
 all: pre bin
 
 bin: utils scanner lex
-	$(CC) $(CCFLAGS) -o ./bin/scanner  ./lexer.o ./scanner.o ./bin/colorized.o ./bin/symbolTable.o
+	$(CC) $(CCFLAGS) -o ./bin/scanner \
+		./lexer.o \
+		./scanner.o \
+		./bin/type.o \
+		./bin/colorized.o \
+		./bin/symbolTable.o
 
 lex:
-	flex -d -o lexer.cc $(LEXFILE)
+	flex -o lexer.cc $(LEXFILE)
 	$(CC) $(CCFLAGS) -c lexer.cc
 
 scanner:
@@ -20,6 +25,7 @@ scanner:
 utils: pre
 	g++ -fPIC -g -c ./utils/colorized.cc -o ./bin/colorized.o
 	g++ -fPIC -g -c ./utils/symbolTable.cc -o ./bin/symbolTable.o
+	g++ -fPIC -g -c ./utils/type.cc -o ./bin/type.o
 
 pre:
 	mkdir -p bin
