@@ -6,10 +6,11 @@
 
 #include <fstream>
 #include <iostream>
-#include <memory>
-#include <algorithm>
 #include <iomanip>
+#include <utility>
+#include <algorithm>
 
+#define T_VOID    0b00000000
 #define T_BOOL    0b00000001
 #define T_INT     0b00000010
 #define T_FLOAT   0b00000100
@@ -20,12 +21,13 @@
 
 
 const char* typeinfo(uint8_t typeCode);
+const char* typeinfo(std::pair<std::string, uint8_t> id);
 
 struct YYType
 {
   int state;
   uint8_t type;
-  std::string context;
+  std::pair<std::string, uint8_t> context;
 };
 
 
