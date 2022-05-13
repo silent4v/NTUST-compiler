@@ -12,6 +12,11 @@ class Test
   var d3: float
   var b4: bool = false
 
+  // Array
+  var a1: bool[5]
+  var a2: int[8]
+
+
   fun sum (a: int, b: int): int {
   }
 
