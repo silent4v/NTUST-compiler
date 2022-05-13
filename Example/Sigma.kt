@@ -6,7 +6,7 @@
 class Sigma
 {
   // constants and variables
-  val n = 10
+  val n = "test"
   var sum: int
   var index: int
 
@@ -15,7 +15,7 @@ class Sigma
     index = 0
     
     while (index <= n) {
-      sum = sum + index
+      sum = sum + index + 1
       index = index + 1
     }
     print ("The sum is ")
