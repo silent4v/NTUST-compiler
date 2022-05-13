@@ -12,8 +12,20 @@
   extern int yydebug;
   extern bool lexHint;
   extern bool tokenFlow;
+  extern SymbolTable st;
   extern char* yytext;
   extern int yylex(void);
+
+  std::vector<uint8_t> arglist;
+  auto formatArgs = [](std::vector<uint8_t> v) {
+    std::string list = "";
+    std::string spe = "";
+    for(auto& t: v) {
+      list += spe + typeinfo(t);
+      spe = ",";
+    }
+    return list;
+  };
 %}
 
 %token<state> IF ELSE CASE
@@ -22,22 +34,22 @@
 %token<state> VAL VAR FUN CLASS
 %token<state> PRINT PRINTLN READ RETURN
 %token<type> INT FLOAT BOOL STRING
-%token<type> INT_VALUE FLOAT_VALUE BOOL_VALUE STRING_VALUE
+%token<context> INT_VALUE FLOAT_VALUE BOOL_VALUE STRING_VALUE
 %token<context> PARAMETER IDENTIFIER
 
 %right '='
 %left '+' '-'
 %left '*' '/'
 
-%type<type> literalValue
+%type<context> literalValue
+%type<context> fn
+%type<context> rval lval val expression
 %type<type> types
-%type<type> rval lval val
-%type<type> expression
 
 %%
 
 program:
-  CLASS IDENTIFIER '{' utils '}'
+  CLASS IDENTIFIER { st.create($2.first); } '{' utils '}'
 ;
 
 utils:
@@ -91,56 +103,56 @@ expression:
    $$ = $2;
  }
 | expression LT expression {
-    std::cout << "operator< : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_BOOL;
+    // std::cout << "operator< : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_BOOL);
   }
 | expression LTE expression {
-    std::cout << "operator<= : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_BOOL;
+    // std::cout << "operator<= : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_BOOL);
   }
 | expression GT expression {
-    std::cout << "operator> : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_BOOL;
+    // std::cout << "operator> : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_BOOL);
   }
 | expression GTE expression {
-    std::cout << "operator>= : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_BOOL;
+    // std::cout << "operator>= : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_BOOL);
   }
 | expression EQ expression {
-    std::cout << "operator== : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_BOOL;
+    // std::cout << "operator== : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_BOOL);
   }
 | expression NE expression {
-    std::cout << "operator!= : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_BOOL;
+    // std::cout << "operator!= : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_BOOL);
   }
 | expression '+' expression {
-    std::cout << "operator+ : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_INT;
+    // std::cout << "operator+ : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_INT);
   }
 | expression '-' expression {
-    std::cout << "operator- : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_INT;
+    // std::cout << "operator- : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_INT);
   }
 | expression '*' expression {
-    std::cout << "operator* : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_INT;
+    // std::cout << "operator* : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_INT);
   }
 | expression '/' expression {
-    std::cout << "operator/ : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_INT;
+    // std::cout << "operator/ : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_INT);
   }
 | expression '%' expression {
-    std::cout << "operator% : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_INT;
+    // std::cout << "operator% : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_INT);
   }
 | expression '|' expression {
-    std::cout << "operator| : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_INT;
+    // std::cout << "operator| : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_INT);
   }
 | expression '&' expression {
-    std::cout << "operator& : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
-    $$ = T_INT;
+    // std::cout << "operator& : " << typeinfo($1) << ", " << typeinfo($3) << "\n";
+    $$ = std::make_pair("" , T_INT);
   }
 | val
 ;
@@ -152,16 +164,18 @@ val:
 
 lval:
   IDENTIFIER {
-    $$ = $1.second;
+    auto var = st.lookup($1.first);
+    $$ = var;
   }
 | IDENTIFIER '[' expression ']' {
-    $$ = $1.second;
+    auto var = st.lookup($1.first);
+    $$ = std::make_pair(var.first+"[]", var.second);
   }
 ;
 
 rval:
   IDENTIFIER '(' params ')' {
-    $$ = T_VOID;
+    $$ = std::make_pair("fn_invoke" , T_VOID);
   }
 | literalValue
 ;
@@ -188,11 +202,24 @@ functions:
 ;
 
 function:
-  FUN IDENTIFIER '(' args ')' '{' stmts '}' {
-    std::cout << "[function<void>]" << $2.first << "\n";
+  fn '(' args ')' '{' stmts '}' {
+    std::cout << keyword("Function") << "<void()> " << $1.first << "\n";
+    st.exit();
+    st.insert($1.first , T_FN | T_VOID );
   }
-| FUN IDENTIFIER '(' args ')' ':' types '{' stmts '}' {
-    std::cout << "[function<" << typeinfo($7) << ">]" << $2.first << "\n";
+| fn '(' args ')' ':' types '{' stmts '}' {
+    std::cout << keyword("Function")
+              << "<" << typeinfo($6) << "(" << formatArgs(arglist) << ")> " 
+              << $1.first << "\n";
+    st.exit();
+    st.insert($1.first , T_FN | $6 );
+  }
+;
+
+fn:
+  FUN IDENTIFIER {
+    st.next($2.first);
+    $$ = make_pair($2.first, T_FN);
   }
 ;
 
@@ -204,7 +231,8 @@ args:
 
 arg:
   IDENTIFIER ':' types {
-    std::cout << "[arg]" << $1.first << "<" << typeinfo($3) << ">\n";
+    st.insert($1.first , T_ARG | $3 );
+    arglist.push_back( $3 );
   }
 ;
 
@@ -220,25 +248,27 @@ variable:
 
 decl:
   VAR IDENTIFIER ':' types {
-    std::cout << $2.first << "<" << typeinfo($4) << ">\n";
+    st.insert($2.first, $4);
   }
-| VAR IDENTIFIER ':' types '=' literalValue {
-    std::cout << $2.first << "<" << typeinfo($4) << ">\n";
+| VAR IDENTIFIER ':' types '=' expression {
+    typeCheck($4, $6.second);
+    st.insert($2.first, $4);
   }
-| VAR IDENTIFIER '=' literalValue {
-    std::cout << $2.first << "<" << typeinfo($4) << ">\n";
+| VAR IDENTIFIER '=' expression {
+    st.insert($2.first, $4.second);
   }
-| VAR IDENTIFIER ':' types '[' INT_VALUE ']' {
+| VAR IDENTIFIER ':' types '[' expression ']' {
     std::cout << $2.first << "<" << typeinfo($4) << "[]>\n";
   }
 ;
 
 cdecl:
-  VAL IDENTIFIER ':' types '=' literalValue {
-    std::cout << $2.first << "<" << typeinfo($4) << ">\n";
+  VAL IDENTIFIER ':' types '=' expression {
+    typeCheck($4, $6.second);
+    st.insert($2.first, $4 | T_CONST);
   }
-| VAL IDENTIFIER '=' literalValue {
-    std::cout << $2.first << "<" << typeinfo($4) << ">\n";
+| VAL IDENTIFIER '=' expression {
+    st.insert($2.first, $4.second | T_CONST);
   }
 ;
 
@@ -250,10 +280,10 @@ types:
 ;
 
 literalValue:
-  BOOL_VALUE    { $$ = $1; }
-| INT_VALUE     { $$ = $1; }
-| FLOAT_VALUE   { $$ = $1; }
-| STRING_VALUE  { $$ = $1; }
+  BOOL_VALUE
+| INT_VALUE
+| FLOAT_VALUE
+| STRING_VALUE
 ;
 %%
 
@@ -270,12 +300,13 @@ int main(int argc, char** argv)
   FILE* fs = NULL;
   std::string filename = "%empty";
 
-  /* read config */
+  /* select config */
   for(int i = 0 ; i < argc ; ++i)
   {
     if( IS_SAME(argv[i], "-df") ) tokenFlow = true;
     if( IS_SAME(argv[i], "-ds") ) yydebug = 3;
     if( IS_SAME(argv[i], "-dt") ) lexHint = true;
+    if( IS_SAME(argv[i], "-dst") ) st.enableDebug();
     if( IS_SAME(argv[i], "-f") ) {
       filename = argv[i+1];
       fs = fopen(filename.c_str(), "r");

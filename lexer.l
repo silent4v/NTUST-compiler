@@ -10,7 +10,7 @@
 
 int linenum = 1;
 extern char* yytext;
-auto st = std::make_unique<SymbolTable>();
+SymbolTable st;
 std::string buf = "";
 std::string declType = "";
 bool lexHint = false;
@@ -118,28 +118,32 @@ space   [ \t]*
 {boolean}    {
   SCAN;
   token(id(yytext), "BOOL");
-  yylval.type = T_BOOL;
+  yylval.context.first = yytext;
+  yylval.context.second = T_BOOL;
   return BOOL_VALUE;
 }
 
 {integer} {
   SCAN;
   token(id(yytext), "NUMBER");
-  yylval.type = T_INT;
+  yylval.context.first = yytext;
+  yylval.context.second = T_INT;
   return INT_VALUE;
 }
 
 {real} {
   SCAN;
   token(id(yytext), "NUMBER");
-  yylval.type = T_FLOAT;
+  yylval.context.first = yytext;
+  yylval.context.second = T_FLOAT;
   return FLOAT_VALUE;
 }
 
 {scientific} {
   SCAN;
   token(id(yytext), "NUMBER");
-  yylval.type = T_FLOAT;
+  yylval.context.first = yytext;
+  yylval.context.second = T_FLOAT;
   return FLOAT_VALUE;
 }
 
@@ -150,7 +154,8 @@ space   [ \t]*
     literalValue.replace(literalValue.find("\"\""), 2, "\"");
   }
   token(id(literalValue.c_str()), "STRING");
-  yylval.type = T_STRING;
+  yylval.context.first = literalValue;
+  yylval.context.second = T_STRING;
   return STRING_VALUE;
 }
 
