@@ -19,9 +19,13 @@
 #define T_FN      0b01000000
 
 
+const char* typeinfo(uint8_t typeCode);
+
 struct YYType
 {
+  int state;
   uint8_t type;
+  std::string context;
 };
 
 
