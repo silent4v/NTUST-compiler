@@ -49,7 +49,8 @@
 %%
 
 program:
-  CLASS IDENTIFIER { st.create($2.first); } '{' utils '}'
+  CLASS IDENTIFIER { st.create($2.first); } '{' utils '}' {
+  }
 ;
 
 utils:
@@ -152,11 +153,11 @@ val:
 lval:
   IDENTIFIER {
     auto var = st.lookup($1.first);
-    $$ = var;
+    $$ = std::make_pair(VALUE(var), TYPE(var));
   }
 | IDENTIFIER '[' expression ']' {
     auto var = st.lookup($1.first);
-    $$ = std::make_pair(var.first+"[]", var.second);
+    $$ = std::make_pair(VALUE(var), TYPE(var));
   }
 ;
 
@@ -192,6 +193,7 @@ function:
   fn '(' args ')' '{' stmts '}' {
     std::cout << keyword("Function") << "<void()> " << $1.first << "\n";
     st.exit();
+    arglist.clear();
     st.insert($1.first , T_FN | T_VOID );
   }
 | fn '(' args ')' ':' types '{' stmts '}' {
@@ -199,13 +201,14 @@ function:
               << "<" << typeinfo($6) << "(" << formatArgs(arglist) << ")> " 
               << $1.first << "\n";
     st.exit();
+    arglist.clear();
     st.insert($1.first , T_FN | $6 );
   }
 ;
 
 fn:
   FUN IDENTIFIER {
-    st.next($2.first);
+    st.enter($2.first);
     $$ = make_pair($2.first, T_FN);
   }
 ;
@@ -245,7 +248,7 @@ decl:
     st.insert($2.first, $4.second);
   }
 | VAR IDENTIFIER ':' types '[' expression ']' {
-    std::cout << $2.first << "<" << typeinfo($4) << "[]>\n";
+    st.insert($2.first, $4 | T_ARRAY);
   }
 ;
 
@@ -317,6 +320,7 @@ int main(int argc, char** argv)
   puts("- - - - - Begin parsing - - - - -");
   yyparse();
   puts("\n- - - - - End   parsing - - - - -");
+  st.print();
   return 0;
 }
 

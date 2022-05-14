@@ -19,7 +19,7 @@ lex:
 	$(CC) $(CCFLAGS) -c lexer.cc
 
 scanner:
-	bison -d scanner.y -o scanner.cc
+	bison -d -v scanner.y -o scanner.cc
 	$(CC) $(CCFLAGS) -c scanner.cc
 
 utils: pre

@@ -21,8 +21,8 @@
 #define T_FN 0b10000000
 using Pair = std::pair<std::string, uint8_t>;
 
-const char *typeinfo(uint8_t typeCode);
-const char *typeinfo(Pair id);
+std::string typeinfo(uint8_t typeCode);
+std::string typeinfo(Pair id);
 void typeCheck(Pair p1, Pair p2);
 void typeCheck(uint8_t t1, uint8_t t2);
 

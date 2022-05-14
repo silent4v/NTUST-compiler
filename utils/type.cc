@@ -1,34 +1,69 @@
 #include "type.hh"
 #include "colorized.hh"
 
-const char *typeinfo(uint8_t typeCode) {
+std::string typeinfo(uint8_t typeCode) {
+  std::string typeName = "";
   switch (typeCode & 0b00001111) {
   case T_BOOL:
-    return "bool";
+    typeName = "bool";
+    break;
   case T_INT:
-    return "int";
+    typeName = "int";
+    break;
   case T_FLOAT:
-    return "float";
+    typeName = "float";
+    break;
   case T_STRING:
-    return "string";
+    typeName = "string";
+    break;
   default:
-    return "void";
+    typeName = "void";
+    break;
   }
+
+  if (typeCode & T_CONST)
+    typeName = "const " + typeName;
+  if (typeCode & T_ARRAY)
+    typeName = typeName + "[]";
+  if (typeCode & T_ARG)
+    typeName = typeName + " :param";
+  if (typeCode & T_FN)
+    typeName = "Fn<" + typeName + ">";
+
+  return typeName;
 }
 
-const char *typeinfo(std::pair<std::string, uint8_t> id) {
-  switch (id.second & 0b00001111) {
+std::string typeinfo(std::pair<std::string, uint8_t> id) {
+  std::string typeName = "";
+  auto typeCode = id.second;
+  switch (typeCode & 0b00001111) {
   case T_BOOL:
-    return "bool";
+    typeName = "bool";
+    break;
   case T_INT:
-    return "int";
+    typeName = "int";
+    break;
   case T_FLOAT:
-    return "float";
+    typeName = "float";
+    break;
   case T_STRING:
-    return "string";
+    typeName = "string";
+    break;
   default:
-    return "void(id)";
+    typeName = "void";
+    break;
   }
+
+  if (typeCode & T_CONST)
+    typeName = "const " + typeName;
+  if (typeCode & T_ARRAY)
+    typeName = typeName + "[]";
+  if (typeCode & T_ARG)
+    typeName = typeName + " :param";
+  if (typeCode & T_FN)
+    typeName = "Fn<" + typeName + ">";
+
+  return typeName;
 }
 
 void typeCheck(uint8_t t1, uint8_t t2) {
