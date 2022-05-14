@@ -55,13 +55,12 @@ program:
 
 utils:
   stmts
-| loop
 | condition
 ;
 
 stmts:
-  stmts stmt
-| stmt
+  stmt
+| stmt stmts
 | %empty
 ;
 
@@ -100,49 +99,49 @@ stmt:
 ;
 
 expression:
- '(' expression ')' {
-   $$ = $2;
- }
-| expression LT expression {
+  val
+| '(' expression ')' {
+    $$ = $2;
+  }
+| val LT expression {
     $$ = std::make_pair("" , T_BOOL);
   }
-| expression LTE expression {
+| val LTE expression {
     $$ = std::make_pair("" , T_BOOL);
   }
-| expression GT expression {
+| val GT expression {
     $$ = std::make_pair("" , T_BOOL);
   }
-| expression GTE expression {
+| val GTE expression {
     $$ = std::make_pair("" , T_BOOL);
   }
-| expression EQ expression {
+| val EQ expression {
     $$ = std::make_pair("" , T_BOOL);
   }
-| expression NE expression {
+| val NE expression {
     $$ = std::make_pair("" , T_BOOL);
   }
-| expression '+' expression {
+| val '+' expression {
     $$ = std::make_pair("" , T_INT);
   }
-| expression '-' expression {
+| val '-' expression {
     $$ = std::make_pair("" , T_INT);
   }
-| expression '*' expression {
+| val '*' expression {
     $$ = std::make_pair("" , T_INT);
   }
-| expression '/' expression {
+| val '/' expression {
     $$ = std::make_pair("" , T_INT);
   }
-| expression '%' expression {
+| val '%' expression {
     $$ = std::make_pair("" , T_INT);
   }
-| expression '|' expression {
+| val '|' expression {
     $$ = std::make_pair("" , T_INT);
   }
-| expression '&' expression {
+| val '&' expression {
     $$ = std::make_pair("" , T_INT);
   }
-| val
 ;
 
 val:
@@ -169,14 +168,14 @@ rval:
 ;
 
 params:
-  params ',' expression
-| expression
+  expression
+| expression ',' params
 | %empty
 ;
 
 defines:
-  defines define
-| define
+  define
+| define defines
 ;
 
 define:
@@ -185,8 +184,8 @@ define:
 ;
 
 functions:
-  functions function
-| function
+  function
+| function functions
 ;
 
 function:
@@ -214,8 +213,8 @@ fn:
 ;
 
 args:
-  args ',' arg
-| arg
+  arg
+| arg ',' args
 | %empty
 ;
 
@@ -227,8 +226,8 @@ arg:
 ;
 
 variables:
-  variables variable
-| variable
+  variable
+| variable variables
 ;
 
 variable:

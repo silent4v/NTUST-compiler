@@ -57,7 +57,7 @@ void SymbolTable::exit() {
 bool SymbolTable::exists(std::string name) {
   bool find = false;
   auto cursor = SymbolTable::cursor;
-  while (cursor->parent_.lock() != nullptr) {
+  while (cursor != SymbolTable::root) {
     auto currCheckTable = SymbolTable::cursor->symbols;
     auto result = std::any_of(currCheckTable.cbegin(), currCheckTable.cend(),
                               [&name](auto &var) { return NAME(var) == name; });
@@ -72,7 +72,7 @@ bool SymbolTable::exists(std::string name) {
 
 Symbol SymbolTable::lookup(std::string name) {
   auto cursor = SymbolTable::cursor;
-  while (SymbolTable::cursor->parent_.lock() != nullptr) {
+  while (cursor != SymbolTable::root) {
     auto currCheckTable = SymbolTable::cursor->symbols;
     auto result =
         std::find_if(currCheckTable.cbegin(), currCheckTable.cend(),
@@ -83,7 +83,7 @@ Symbol SymbolTable::lookup(std::string name) {
       cursor = cursor->parent_.lock();
     }
   }
-  std::cout << red("Fatal Error:") << symbol(name) << " not found";
+  std::cout << red("Fatal Error:") << symbol(name) << " not found\n";
   std::exit(-1);
 }
 

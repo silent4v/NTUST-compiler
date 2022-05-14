@@ -28,7 +28,7 @@ std::string typeinfo(uint8_t typeCode) {
   if (typeCode & T_ARG)
     typeName = typeName + " :param";
   if (typeCode & T_FN)
-    typeName = "Fn<" + typeName + ">";
+    typeName = "Fn: " + typeName;
 
   return typeName;
 }
@@ -61,7 +61,7 @@ std::string typeinfo(std::pair<std::string, uint8_t> id) {
   if (typeCode & T_ARG)
     typeName = typeName + " :param";
   if (typeCode & T_FN)
-    typeName = "Fn<" + typeName + ">";
+    typeName = "Fn: " + typeName;
 
   return typeName;
 }
