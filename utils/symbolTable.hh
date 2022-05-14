@@ -13,6 +13,7 @@
 #define NAME(key) std::get<0>(key)
 #define TYPE(key) std::get<1>(key)
 #define VALUE(key) std::get<2>(key)
+
 #define DEBUG(msg)                                                             \
   {                                                                            \
     if (SymbolTable::debug_mode)                                               \

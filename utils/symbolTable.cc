@@ -58,7 +58,7 @@ bool SymbolTable::exists(std::string name) {
   bool find = false;
   auto cursor = SymbolTable::cursor;
   while (cursor != SymbolTable::root) {
-    auto currCheckTable = SymbolTable::cursor->symbols;
+    auto currCheckTable = cursor->symbols;
     auto result = std::any_of(currCheckTable.cbegin(), currCheckTable.cend(),
                               [&name](auto &var) { return NAME(var) == name; });
     if (result) {
@@ -72,25 +72,31 @@ bool SymbolTable::exists(std::string name) {
 
 Symbol SymbolTable::lookup(std::string name) {
   auto cursor = SymbolTable::cursor;
-  while (cursor != SymbolTable::root) {
-    auto currCheckTable = SymbolTable::cursor->symbols;
+  while (true) {
+    auto currCheckTable = cursor->symbols;
+    DEBUG("--> lookup: " + name + "@" + keyword(cursor->scopeName))
     auto result =
         std::find_if(currCheckTable.cbegin(), currCheckTable.cend(),
                      [&name](auto &var) { return NAME(var) == name; });
     if (result != currCheckTable.cend()) {
       return *result;
     } else {
+      if (cursor == SymbolTable::root) {
+        break;
+      }
       cursor = cursor->parent_.lock();
     }
   }
-  std::cout << red("Fatal Error:") << symbol(name) << " not found\n";
+
+  std::cout << red("Fatal Error: ") << symbol(name) << " not found\n";
+  printv(cursor->symbols);
   std::exit(-1);
 }
 
 Symbol SymbolTable::insert(std::string name, uint8_t type, std::string ctx) {
   auto &scope = SymbolTable::cursor;
   if (scope->exists(name)) {
-    std::cout << red("Fatal Error:") << symbol(name) << " already exists";
+    std::cout << red("Fatal Error: ") << symbol(name) << " already exists";
     std::exit(-1);
   }
   auto tuple = std::make_tuple(name, type, ctx);
