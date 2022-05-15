@@ -9,16 +9,28 @@
   #define P_CTX(t) (t).first
   #define P_TYPE(t) (t).second
 
+  #define SUFFIX(a, b, op) ((a).first + " " + (b).first + " " + op)
+
   #define RELATION_OPERATION(lt ,rt)                                         \
   auto calcType = (P_TYPE(lt) & P_TYPE(rt));                                 \
   if ((calcType != T_INT) && (calcType != T_FLOAT)) {                        \
     std::cout << red("Fatal Error:")                                         \
-              << "Only allow same-type, but receive "                        \
-              << keyword(typeinfo(P_TYPE(lt))) << " , "                      \
-              << keyword(typeinfo(P_TYPE(rt))) << "\n";                      \
+              << "Compare Only allow same-number-type, but receive "         \
+              << P_CTX(lt) << ":" <<keyword(typeinfo(P_TYPE(lt))) << " , "   \
+              << P_CTX(rt) << ":" <<keyword(typeinfo(P_TYPE(rt))) << "\n";   \
     std::exit(-1);                                                           \
   }                                                                          \
   
+  #define CALC_OPERATION(lt ,rt)                                                \
+  auto ll = P_TYPE(lt) & (T_INT | T_FLOAT);                                       \
+  auto rr = P_TYPE(rt) & (T_INT | T_FLOAT);                                       \
+  if(((ll != T_INT) && (ll != T_FLOAT)) || ((rr != T_INT) && (rr != T_FLOAT))){ \
+    std::cout << red("Fatal Error:")                                            \
+              << "Calc allow number-type, but receive "                         \
+              << P_CTX(lt) << ":" <<keyword(typeinfo(P_TYPE(lt))) << " , "      \
+              << P_CTX(rt) << ":" <<keyword(typeinfo(P_TYPE(rt))) << "\n";      \
+    std::exit(-1);                                                              \
+  }                                                                             \
 
 
   extern "C" 
@@ -54,14 +66,19 @@
 %token<context> INT_VALUE FLOAT_VALUE BOOL_VALUE STRING_VALUE
 %token<context> PARAMETER IDENTIFIER
 
-%right '='
+%left '&' '|'
+%left '%'
 %left '+' '-'
 %left '*' '/'
+%right '='
 
 %type<context> literalValue
 %type<context> fn invoke stmt
 %type<context> rval lval val expression
 %type<type> types
+
+%nonassoc IF
+%nonassoc IF_ELSE
 
 %%
 
@@ -79,6 +96,7 @@ stmts:
 optionScope:
   stmt
 | '{' stmts '}'
+;
 
 loop:
   WHILE  '(' expression ')' optionScope {
@@ -86,7 +104,7 @@ loop:
   }
 | FOR  '(' IDENTIFIER IN expression RANGE expression ')' optionScope {
     std::cout << "for-loop" << "\n";
-}
+  }
 ;
 
 condition:
@@ -142,50 +160,70 @@ expression:
 | '(' expression ')' {
     $$ = $2;
   }
-| val LT expression {
+| expression LT expression {
     RELATION_OPERATION($1, $3)
-    $$ = std::make_pair("" , T_BOOL);
+    $$ = std::make_pair( SUFFIX($1, $3, "<") , T_BOOL);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val LTE expression {
+| expression LTE expression {
     RELATION_OPERATION($1, $3)
-    $$ = std::make_pair("" , T_BOOL);
+    $$ = std::make_pair( SUFFIX($1, $3, "<=") , T_BOOL);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val GT expression {
+| expression GT expression {
     RELATION_OPERATION($1, $3)
-    $$ = std::make_pair("" , T_BOOL);
+    $$ = std::make_pair( SUFFIX($1, $3, ">") , T_BOOL);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val GTE expression {
+| expression GTE expression {
     RELATION_OPERATION($1, $3)
-    $$ = std::make_pair("" , T_BOOL);
+    $$ = std::make_pair( SUFFIX($1, $3, ">=") , T_BOOL);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val EQ expression {
+| expression EQ expression {
     RELATION_OPERATION($1, $3)
-    $$ = std::make_pair("" , T_BOOL);
+    $$ = std::make_pair( SUFFIX($1, $3, "==") , T_BOOL);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val NE expression {
+| expression NE expression {
     RELATION_OPERATION($1, $3)
-    $$ = std::make_pair("" , T_BOOL);
+    $$ = std::make_pair( SUFFIX($1, $3, "!=") , T_BOOL);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val '+' expression {
-    $$ = std::make_pair("" , T_INT);
+| expression '*' expression {
+    CALC_OPERATION($1, $3)
+    $$ = std::make_pair( SUFFIX($1, $3, "*"), T_INT);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val '-' expression {
-    $$ = std::make_pair("" , T_INT);
+| expression '/' expression {
+    CALC_OPERATION($1, $3)
+    $$ = std::make_pair( SUFFIX($1, $3, "/"), T_INT);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val '*' expression {
-    $$ = std::make_pair("" , T_INT);
+| expression '+' expression {
+    CALC_OPERATION($1, $3)
+    $$ = std::make_pair( SUFFIX($1, $3, "+"), T_INT);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val '/' expression {
-    $$ = std::make_pair("" , T_INT);
+| expression '-' expression {
+    CALC_OPERATION($1, $3)
+    $$ = std::make_pair( SUFFIX($1, $3, "-"), T_INT);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val '%' expression {
-    $$ = std::make_pair("" , T_INT);
+| expression '%' expression {
+    CALC_OPERATION($1, $3)
+    $$ = std::make_pair( SUFFIX($1, $3, "%"), T_INT);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val '|' expression {
-    $$ = std::make_pair("" , T_INT);
+| expression '|' expression {
+    CALC_OPERATION($1, $3)
+    $$ = std::make_pair( SUFFIX($1, $3, "|"), T_INT);
+    SHOW( "-->" + P_CTX($$) )
   }
-| val '&' expression {
-    $$ = std::make_pair("" , T_INT);
+| expression '&' expression {
+    CALC_OPERATION($1, $3)
+    $$ = std::make_pair( SUFFIX($1, $3, "&"), T_INT);
+    SHOW( "-->" + P_CTX($$) )
   }
 ;
 
@@ -372,7 +410,6 @@ int main(int argc, char** argv)
   std::cout << "Symbol Table Info: " << (st.debug_mode ? green("print") : red("slient")) << "\n";
   std::cout << "YYState Info: "      << (yydebug ? green("print") : red("slient"))       << "\n";
   puts("");
-
   puts("- - - - - Begin parsing - - - - -");
   yyparse();
   puts("\n- - - - - End   parsing - - - - -");
