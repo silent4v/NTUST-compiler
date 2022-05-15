@@ -16,6 +16,7 @@ class Test
   var a1: bool[5]
   var a2: int[8]
 
+  i2 = 3 + 5 * 2 + 4 / 100 + 7 - 16 * 9 * 13 / 4
 
   fun sum (a: int, b: int): int {
   }

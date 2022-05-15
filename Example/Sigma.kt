@@ -6,7 +6,7 @@
 class Sigma
 {
   // constants and variables
-  val n = "test"
+  val n = 10
   var sum: int
   var index: int
 
