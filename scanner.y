@@ -11,21 +11,23 @@
 
   #define SUFFIX(a, b, op) ((a).first + " " + (b).first + " " + op)
 
-  #define RELATION_OPERATION(lt ,rt)                                         \
-  auto calcType = (P_TYPE(lt) & P_TYPE(rt));                                 \
-  if ((calcType != T_INT) && (calcType != T_FLOAT)) {                        \
-    std::cout << red("Fatal Error:")                                         \
-              << "Compare Only allow same-number-type, but receive "         \
-              << P_CTX(lt) << ":" <<keyword(typeinfo(P_TYPE(lt))) << " , "   \
-              << P_CTX(rt) << ":" <<keyword(typeinfo(P_TYPE(rt))) << "\n";   \
-    std::exit(-1);                                                           \
-  }                                                                          \
+  #define RELATION_OPERATION(lt ,rt, _op_)                                      \
+  auto ll = P_TYPE(lt) & (T_INT | T_FLOAT);                                     \
+  auto rr = P_TYPE(rt) & (T_INT | T_FLOAT);                                     \
+  if(((ll != T_INT) && (ll != T_FLOAT)) || ((rr != T_INT) && (rr != T_FLOAT))){ \
+    std::cout << red("Fatal Error: ")                                           \
+              << "operation" << _op_                                            \
+              << " Only allow same-number-type, but receive "                   \
+              << P_CTX(lt) << ":" <<keyword(typeinfo(P_TYPE(lt))) << " , "      \
+              << P_CTX(rt) << ":" <<keyword(typeinfo(P_TYPE(rt))) << "\n";      \
+    std::exit(-1);                                                              \
+  }                                                                             \
   
   #define CALC_OPERATION(lt ,rt)                                                \
-  auto ll = P_TYPE(lt) & (T_INT | T_FLOAT);                                       \
-  auto rr = P_TYPE(rt) & (T_INT | T_FLOAT);                                       \
+  auto ll = P_TYPE(lt) & (T_INT | T_FLOAT);                                     \
+  auto rr = P_TYPE(rt) & (T_INT | T_FLOAT);                                     \
   if(((ll != T_INT) && (ll != T_FLOAT)) || ((rr != T_INT) && (rr != T_FLOAT))){ \
-    std::cout << red("Fatal Error:")                                            \
+    std::cout << red("Fatal Error: ")                                           \
               << "Calc allow number-type, but receive "                         \
               << P_CTX(lt) << ":" <<keyword(typeinfo(P_TYPE(lt))) << " , "      \
               << P_CTX(rt) << ":" <<keyword(typeinfo(P_TYPE(rt))) << "\n";      \
@@ -45,7 +47,9 @@
   extern char* yytext;
   extern int yylex(void);
   bool showContext = false;
-  std::vector<uint8_t> arglist;
+  std::vector<uint8_t> arglist = {};
+  std::vector<uint8_t> paramlist = {};
+
   auto formatArgs = [](std::vector<uint8_t> v) {
     std::string list = "";
     std::string spe = "";
@@ -55,6 +59,25 @@
     }
     return list;
   };
+
+  void compareVec(std::vector<uint8_t>& a, std::vector<uint8_t>& b) {
+    if(a.size() != b.size()) {
+      std::cout << red("Fatal error: ") << "Args define & paramlist not match\n";
+      std::exit(-1);
+    }
+    for(int i = 0; i < a.size(); ++i) {
+      auto typeA = (a.at(i) == T_INT || a.at(i) == T_FLOAT) ? 6 : a.at(i);
+      auto typeB = (b.at(i) == T_INT || b.at(i) == T_FLOAT) ? 6 : b.at(i);
+      typeA = typeA & TYPE_MASK;
+      typeB = typeB & TYPE_MASK;
+      if((typeA & typeB) == 0) {
+        std::cout << red("Fatal error: ") << "At args[" << i+1 << "] ,"
+                  << symbol(typeinfo(typeA)) << " not compatible with " << symbol(typeinfo(typeB))
+                  << "\n";
+        std::exit(-1);
+      }
+    }
+  }
 %}
 
 %token<state> IF ELSE CASE
@@ -66,24 +89,25 @@
 %token<context> INT_VALUE FLOAT_VALUE BOOL_VALUE STRING_VALUE
 %token<context> PARAMETER IDENTIFIER
 
+%right '='
 %left '&' '|'
 %left '%'
 %left '+' '-'
 %left '*' '/'
-%right '='
 
 %type<context> literalValue
 %type<context> fn invoke stmt
 %type<context> rval lval val expression
 %type<type> types
 
-%nonassoc IF
-%nonassoc IF_ELSE
+%nonassoc '!'
+%nonassoc UMINUS
 
 %%
 
 program:
   CLASS IDENTIFIER { st.create(P_CTX($2)); } '{' stmts '}' {
+    std::cout << "END";
   }
 ;
 
@@ -93,26 +117,31 @@ stmts:
 | %empty
 ;
 
-optionScope:
-  stmt
-| '{' stmts '}'
+loop:
+  WHILE { st.enter("internal:while"); } '(' expression ')' optionScope {
+    typeCheck(P_TYPE($4) & TYPE_MASK, T_BOOL);
+    std::cout << purple("[scope]") << "while-loop" << "\n";
+  }
+| FOR { st.enter("internal:for"); } '(' IDENTIFIER IN expression RANGE expression ')' optionScope {
+    typeCheck(P_TYPE($6) & TYPE_MASK, T_INT);
+    typeCheck(P_TYPE($8) & TYPE_MASK, T_INT);
+    std::cout << purple("[scope]") << "for-loop" << "\n";
+  }
 ;
 
-loop:
-  WHILE  '(' expression ')' optionScope {
-    std::cout << "while-loop" << "\n";
-  }
-| FOR  '(' IDENTIFIER IN expression RANGE expression ')' optionScope {
-    std::cout << "for-loop" << "\n";
-  }
+optionScope:
+  stmt
+| '{' { { st.enter("internal:scope"); } } stmts '}'
 ;
 
 condition:
-  IF  '(' expression ')' optionScope { 
-    std::cout << "if-condition" << "\n";
+  IF '(' expression ')' optionScope {
+    typeCheck(P_TYPE($3) & TYPE_MASK, T_BOOL);
+    std::cout << purple("[scope]") << "if-condition" << "\n";
   }
-| IF  '(' expression ')' optionScope ELSE  optionScope {
-    std::cout << "if-else-condition" << "\n";
+| IF '(' expression ')' optionScope ELSE  optionScope {
+    typeCheck(P_TYPE($3) & TYPE_MASK, T_BOOL);
+    std::cout << purple("[scope]") << "if-else-condition" << "\n";
   }
 ;
 
@@ -144,7 +173,7 @@ stmt:
   }
 | lval '=' expression {
     if((P_TYPE($1) & P_TYPE($3)) != P_TYPE($1)) {
-      std::cout << red("Fatal Error:") <<  "Not allow assign "
+      std::cout << red("Fatal Error: ") <<  "Not allow assign "
                 << keyword(typeinfo(P_TYPE($3)))
                 << " to "
                 << keyword(typeinfo(P_TYPE($1))) << "\n";
@@ -157,73 +186,89 @@ stmt:
 expression:
   invoke
 | val
+| '-' expression {
+    auto opaType = P_TYPE($2) & TYPE_MASK;
+    if(opaType != T_INT && opaType != T_FLOAT) {
+      std::cout << red("Fatal Error: ")
+                << "Only allow number-type, but receive "
+                << typeinfo(P_TYPE($2))
+                << "\n";
+    }
+    $$ = std::make_pair("-" + P_CTX($2) , T_BOOL);
+    SHOW( "--> " + P_CTX($$) )
+  } %prec UMINUS
+| '!' expression {
+    typeCheck(P_TYPE($2) & TYPE_MASK, T_BOOL);
+    $$ = std::make_pair("!" + P_CTX($2) , T_BOOL);
+    SHOW( "--> " + P_CTX($$) )
+  }
 | '(' expression ')' {
     $$ = $2;
   }
 | expression LT expression {
-    RELATION_OPERATION($1, $3)
+    RELATION_OPERATION($1, $3, "<")
     $$ = std::make_pair( SUFFIX($1, $3, "<") , T_BOOL);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression LTE expression {
-    RELATION_OPERATION($1, $3)
+    RELATION_OPERATION($1, $3, "<=")
     $$ = std::make_pair( SUFFIX($1, $3, "<=") , T_BOOL);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression GT expression {
-    RELATION_OPERATION($1, $3)
+    RELATION_OPERATION($1, $3, ">")
     $$ = std::make_pair( SUFFIX($1, $3, ">") , T_BOOL);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression GTE expression {
-    RELATION_OPERATION($1, $3)
+    RELATION_OPERATION($1, $3, ">=")
     $$ = std::make_pair( SUFFIX($1, $3, ">=") , T_BOOL);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression EQ expression {
-    RELATION_OPERATION($1, $3)
+    RELATION_OPERATION($1, $3, "==")
     $$ = std::make_pair( SUFFIX($1, $3, "==") , T_BOOL);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression NE expression {
-    RELATION_OPERATION($1, $3)
+    RELATION_OPERATION($1, $3, "!=")
     $$ = std::make_pair( SUFFIX($1, $3, "!=") , T_BOOL);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression '*' expression {
     CALC_OPERATION($1, $3)
     $$ = std::make_pair( SUFFIX($1, $3, "*"), T_INT);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression '/' expression {
     CALC_OPERATION($1, $3)
     $$ = std::make_pair( SUFFIX($1, $3, "/"), T_INT);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression '+' expression {
     CALC_OPERATION($1, $3)
     $$ = std::make_pair( SUFFIX($1, $3, "+"), T_INT);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression '-' expression {
     CALC_OPERATION($1, $3)
     $$ = std::make_pair( SUFFIX($1, $3, "-"), T_INT);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression '%' expression {
     CALC_OPERATION($1, $3)
     $$ = std::make_pair( SUFFIX($1, $3, "%"), T_INT);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression '|' expression {
     CALC_OPERATION($1, $3)
     $$ = std::make_pair( SUFFIX($1, $3, "|"), T_INT);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 | expression '&' expression {
     CALC_OPERATION($1, $3)
     $$ = std::make_pair( SUFFIX($1, $3, "&"), T_INT);
-    SHOW( "-->" + P_CTX($$) )
+    SHOW( "--> " + P_CTX($$) )
   }
 ;
 
@@ -253,13 +298,23 @@ invoke:
   IDENTIFIER '(' params ')' {
     auto symbol = st.lookup(P_CTX($1));
     SHOW("invoke: " + NAME(symbol))
-    $$ = std::make_pair("fn_invoke" , TYPE(symbol) & T_CONST);
+    auto fArgs = st.formalArgs(NAME(symbol));
+    std::reverse(paramlist.begin(), paramlist.end());
+    SHOW("---->    arg: " + formatArgs(fArgs))
+    SHOW("----> params: " + formatArgs(paramlist))
+    compareVec(fArgs, paramlist);
+    $$ = std::make_pair("fn_invoke" , TYPE(symbol) & TYPE_MASK);
+    paramlist.clear();
   }
 ;
 
 params:
-  expression
-| expression ',' params
+  expression {
+    paramlist.push_back(P_TYPE($1));
+  }
+| expression ',' params {
+    paramlist.push_back(P_TYPE($1));
+  }
 | %empty
 ;
 
@@ -337,6 +392,7 @@ decl:
     st.insert(P_CTX($2), P_TYPE($4));
   }
 | VAR IDENTIFIER ':' types '[' expression ']' {
+    typeCheck(T_INT, P_TYPE($6) & TYPE_MASK);
     st.insert(P_CTX($2), $4 | T_ARRAY);
   }
 ;

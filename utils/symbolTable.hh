@@ -51,6 +51,8 @@ public:
 
   Symbol insert(std::string name, uint8_t type, std::string ctx = "\r\r");
 
+  std::vector<u_int8_t> formalArgs(std::string fn);
+
   /* variable store in currently accessed */
   Table symbols;
 

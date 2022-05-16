@@ -105,6 +105,30 @@ Symbol SymbolTable::insert(std::string name, uint8_t type, std::string ctx) {
   return tuple;
 }
 
+std::vector<u_int8_t> SymbolTable::formalArgs(std::string fn) {
+  std::vector<u_int8_t> formalArgsVec = {};
+  auto parent = SymbolTable::cursor->parent_.lock();
+  std::weak_ptr<SymbolTable> fnScope;
+  fnScope.reset();
+  for (auto &scope : parent->children_) {
+    DEBUG("Try find: " + fn + " == " + scope->scopeName)
+    if (scope->scopeName == parent->scopeName + "." + fn) {
+      fnScope = scope;
+    }
+  }
+
+  if (fnScope.lock() != nullptr) {
+    DEBUG("Pop fn scope: " + fnScope.lock()->scopeName)
+    for (auto &s : fnScope.lock()->symbols) {
+      if (TYPE(s) & T_ARG) {
+        formalArgsVec.push_back(TYPE(s) & TYPE_MASK);
+      }
+    }
+  }
+
+  return formalArgsVec;
+}
+
 void SymbolTable::print() {
   auto rootTable = SymbolTable::root;
   std::deque<decltype(rootTable)> logQueue = {rootTable};

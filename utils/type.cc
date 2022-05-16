@@ -16,6 +16,9 @@ std::string typeinfo(uint8_t typeCode) {
   case T_STRING:
     typeName = "string";
     break;
+  case 6/* T_INT & T_FLOAT */:
+    typeName = "number";
+    break;
   default:
     typeName = "void";
     break;

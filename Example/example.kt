@@ -18,8 +18,8 @@ class example {
   
   // main statements
   fun main() {
-    c = add(a, -1.25)
-    if (c > 10e5)
+    c = add("ta", -1.25)
+    if (c < 10e5)
       print -c
     else
       print c
