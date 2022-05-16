@@ -100,8 +100,7 @@
 %type<context> rval lval val expression
 %type<type> types
 
-%nonassoc '!'
-%nonassoc UMINUS
+%nonassoc UNARY
 
 %%
 
@@ -131,7 +130,7 @@ loop:
 
 optionScope:
   stmt
-| '{' { { st.enter("internal:scope"); } } stmts '}'
+| '{' { { st.enter("internal:scope"); } } stmts '}' { st.exit(); }
 ;
 
 condition:
@@ -196,12 +195,12 @@ expression:
     }
     $$ = std::make_pair("-" + P_CTX($2) , T_BOOL);
     SHOW( "--> " + P_CTX($$) )
-  } %prec UMINUS
+  } %prec UNARY
 | '!' expression {
     typeCheck(P_TYPE($2) & TYPE_MASK, T_BOOL);
     $$ = std::make_pair("!" + P_CTX($2) , T_BOOL);
     SHOW( "--> " + P_CTX($$) )
-  }
+  } %prec UNARY
 | '(' expression ')' {
     $$ = $2;
   }
