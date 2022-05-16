@@ -19,6 +19,9 @@
 #define T_ARRAY 0b00100000
 #define T_ARG 0b01000000
 #define T_FN 0b10000000
+
+#define TYPE_MASK 0b00001111
+
 using Pair = std::pair<std::string, uint8_t>;
 
 std::string typeinfo(uint8_t typeCode);

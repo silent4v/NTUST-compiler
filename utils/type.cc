@@ -3,7 +3,7 @@
 
 std::string typeinfo(uint8_t typeCode) {
   std::string typeName = "";
-  switch (typeCode & 0b00001111) {
+  switch (typeCode & TYPE_MASK) {
   case T_BOOL:
     typeName = "bool";
     break;
@@ -36,7 +36,7 @@ std::string typeinfo(uint8_t typeCode) {
 std::string typeinfo(std::pair<std::string, uint8_t> id) {
   std::string typeName = "";
   auto typeCode = id.second;
-  switch (typeCode & 0b00001111) {
+  switch (typeCode & TYPE_MASK) {
   case T_BOOL:
     typeName = "bool";
     break;
