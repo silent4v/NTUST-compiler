@@ -12,7 +12,8 @@ bin: utils scanner lex
 		./scanner.o \
 		./bin/type.o \
 		./bin/colorized.o \
-		./bin/symbolTable.o
+		./bin/symbolTable.o \
+		./bin/codeGenerate.o
 
 lex:
 	flex -o lexer.cc $(LEXFILE)
@@ -26,6 +27,7 @@ utils: pre
 	g++ -fPIC -g -c ./utils/colorized.cc -o ./bin/colorized.o
 	g++ -fPIC -g -c ./utils/symbolTable.cc -o ./bin/symbolTable.o
 	g++ -fPIC -g -c ./utils/type.cc -o ./bin/type.o
+	g++ -fPIC -g -c ./utils/codeGenerate.cc -o ./bin/codeGenerate.o
 
 pre:
 	mkdir -p bin

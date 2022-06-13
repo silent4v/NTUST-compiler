@@ -1,0 +1,12 @@
+* 修改 symbolTable , 增加 [index] 欄位，會根據在當前scope的宣告順序遞增，用來實現 iload , istore 等指令
+* 修改 symbolTable , 增加 isGlobal 方法，會比較 root 與 current 是否相同，用來區別 全域/區域變數
+* 新增 CodeGenerate 方法，提供一系列的工具函數：
+  * initial 用來生成 class 的 Template string
+  * funcDecl 用來生成 function 的 Template string
+  * getVar 可以傳入一個 symbol，判斷生成 iload 或是 sipush 、 getstatic global
+  * setVar 可以傳入一個 symbol，判斷生成 istore 或是 putstatic
+  * getLabel 維護 labelCount，確保branch的Label永不重複
+  * flush 則是檢測 Template string , 最後生成目標檔案
+* scanner.y 額外實現一些方法
+  * genBranch 可以生成對應的 relation Template (使用 isub 實現)
+  * 各規則部分撰寫對應的 asm-code generate

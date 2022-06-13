@@ -70,7 +70,12 @@ bool SymbolTable::exists(std::string name) {
   return find;
 }
 
-Symbol SymbolTable::lookup(std::string name) {
+bool SymbolTable::isGlobal() {
+  DEBUG("current " + SymbolTable::cursor->scopeName)
+  return SymbolTable::cursor == SymbolTable::root;
+}
+
+Symbol SymbolTable::lookup(std::string name, bool withError) {
   auto cursor = SymbolTable::cursor;
   while (true) {
     auto currCheckTable = cursor->symbols;
@@ -87,21 +92,25 @@ Symbol SymbolTable::lookup(std::string name) {
       cursor = cursor->parent_.lock();
     }
   }
-
-  std::cout << red("Fatal Error: ") << symbol(name) << " not found\n";
-  printv(cursor->symbols);
-  std::exit(-1);
+  if (withError) {
+    std::cout << red("Fatal Error: ") << symbol(name) << " not found\n";
+    printv(cursor->symbols);
+    std::exit(-1);
+  } else {
+    return Symbol { name, 0xff, -2, name};
+  }
 }
 
-Symbol SymbolTable::insert(std::string name, uint8_t type, std::string ctx) {
+Symbol SymbolTable::insert(std::string name, uint8_t type, ushort idx, std::string value) {
   auto &scope = SymbolTable::cursor;
   if (scope->exists(name)) {
     std::cout << red("Fatal Error: ") << symbol(name) << " already exists";
     std::exit(-1);
   }
-  auto tuple = std::make_tuple(name, type, ctx);
+  auto tuple = std::make_tuple(name, type, idx, value);
   scope->symbols.push_back(tuple);
-  DEBUG("[INSERT] " + symbol(name) + "<" + typeinfo(type) + ">")
+  DEBUG("[INSERT] " + symbol(name) + "<" + typeinfo(type) + ">@" +
+        (char)(idx + 48))
   return tuple;
 }
 
