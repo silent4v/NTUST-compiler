@@ -17,20 +17,32 @@
   if(((ll != T_INT) && (ll != T_FLOAT)) || ((rr != T_INT) && (rr != T_FLOAT))){ \
     std::cout << red("Fatal Error: ")                                           \
               << "operation" << _op_                                            \
-              << " Only allow same-number-type, but receive "                   \
-              << P_CTX(lt) << ":" <<keyword(typeinfo(P_TYPE(lt))) << " , "      \
-              << P_CTX(rt) << ":" <<keyword(typeinfo(P_TYPE(rt))) << "\n";      \
+              << " Only allow same-number-type, but receive ["                  \
+              << P_CTX(lt) << ":" <<keyword(typeinfo(P_TYPE(lt))) << "] , ["    \
+              << P_CTX(rt) << ":" <<keyword(typeinfo(P_TYPE(rt))) << "]\n";     \
     std::exit(-1);                                                              \
   }                                                                             \
-  
+
+  #define LOGIC_OPERATION(lt ,rt, _op_)                                         \
+  auto ll = P_TYPE(lt);                                                         \
+  auto rr = P_TYPE(rt);                                                         \
+  if((ll != T_BOOL) || (rr != T_BOOL)){ \
+    std::cout << red("Fatal Error: ")                                           \
+              << "operation" << _op_                                            \
+              << " Only allow same-number-type, but receive ["                  \
+              << P_CTX(lt) << ":" <<keyword(typeinfo(P_TYPE(lt))) << "] , ["    \
+              << P_CTX(rt) << ":" <<keyword(typeinfo(P_TYPE(rt))) << "]\n";     \
+    std::exit(-1);                                                              \
+  }                                                                             \
+
   #define CALC_OPERATION(lt ,rt)                                                \
   auto ll = P_TYPE(lt) & (T_INT | T_FLOAT);                                     \
   auto rr = P_TYPE(rt) & (T_INT | T_FLOAT);                                     \
   if(((ll != T_INT) && (ll != T_FLOAT)) || ((rr != T_INT) && (rr != T_FLOAT))){ \
     std::cout << red("Fatal Error: ")                                           \
-              << "Calc allow number-type, but receive "                         \
-              << P_CTX(lt) << ":" <<keyword(typeinfo(P_TYPE(lt))) << " , "      \
-              << P_CTX(rt) << ":" <<keyword(typeinfo(P_TYPE(rt))) << "\n";      \
+              << "Calc allow number-type, but receive ["                        \
+              << P_CTX(lt) << ":" <<keyword(typeinfo(P_TYPE(lt))) << "] , ["    \
+              << P_CTX(rt) << ":" <<keyword(typeinfo(P_TYPE(rt))) << "]\n";     \
     std::exit(-1);                                                              \
   }                                                                             \
 
@@ -189,9 +201,9 @@ expression:
     auto opaType = P_TYPE($2) & TYPE_MASK;
     if(opaType != T_INT && opaType != T_FLOAT) {
       std::cout << red("Fatal Error: ")
-                << "Only allow number-type, but receive "
+                << "Only allow number-type, but receive ["
                 << typeinfo(P_TYPE($2))
-                << "\n";
+                << "]\n";
     }
     $$ = std::make_pair("-" + P_CTX($2) , T_BOOL);
     SHOW( "--> " + P_CTX($$) )
@@ -260,13 +272,13 @@ expression:
     SHOW( "--> " + P_CTX($$) )
   }
 | expression '|' expression {
-    CALC_OPERATION($1, $3)
-    $$ = std::make_pair( SUFFIX($1, $3, "|"), T_INT);
+    LOGIC_OPERATION($1, $3, "|")
+    $$ = std::make_pair( SUFFIX($1, $3, "|"), T_BOOL);
     SHOW( "--> " + P_CTX($$) )
   }
 | expression '&' expression {
-    CALC_OPERATION($1, $3)
-    $$ = std::make_pair( SUFFIX($1, $3, "&"), T_INT);
+    LOGIC_OPERATION($1, $3, "&")
+    $$ = std::make_pair( SUFFIX($1, $3, "&"), T_BOOL);
     SHOW( "--> " + P_CTX($$) )
   }
 ;
@@ -394,6 +406,20 @@ decl:
     typeCheck(T_INT, P_TYPE($6) & TYPE_MASK);
     st.insert(P_CTX($2), $4 | T_ARRAY);
   }
+| VAR IDENTIFIER {
+  /**
+   * 助教與黃老師認為該語法是合理的
+   * Mircosoft/VC++ GNU/g++ Apple/clang++ 皆不允許C++出現 auto i 這種語法
+   * Google 的 golang 也不允許出現 var i
+   * Mozilla 的 Rust 亦不允許出現 let i
+   * 甚至 Kotlin 也無法讓 var i 通過編譯
+   * 該語法為型別推導，意思是給個型別讓編譯器推導，但是黃老師的助教認為不用給型別也可以推導
+   * 即使違反 Mircosoft、GNU、Apple、Google、Mozilla 若干組織的編譯器實作
+   * 還是逼學生實作，否則不予計分。
+   * 屈於助教與教授淫威，只好勉強實現該不正確的語法
+   */
+  st.insert(P_CTX($2), T_VOID);
+}
 ;
 
 cdecl:
@@ -432,8 +458,8 @@ void yyerror(const char* s)
 int main(int argc, char** argv)
 {
   /* initial config */
-  FILE* fs = NULL;
-  std::string filename = "%empty";
+  FILE* fs = stdin;
+  std::string filename = "#stdin";
 
   /* select config */
   for(int i = 0 ; i < argc ; ++i)

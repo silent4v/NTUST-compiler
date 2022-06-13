@@ -92,9 +92,9 @@ gte     >=
 eq      ==
 ne      !=
 
-and     &
-or      |
-not     !
+and     \&
+or      \|
+not     \!
 logic   {and}|{or}|{not}
 
 assignment =
@@ -175,6 +175,12 @@ space   [ \t]*
 {arithmetic} {
   SCAN;
   token(operators(yytext), "CALCULATE");
+  return *yytext;
+}
+
+{logic} {
+  SCAN;
+  token(operators(yytext), "LOGIC");
   return *yytext;
 }
 
