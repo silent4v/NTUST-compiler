@@ -1,0 +1,69 @@
+class example
+{
+  field static int a = -5
+  field static int b = 10
+  field static int c
+  field static int d = 30
+  field static int k = 40
+  field static int j = 50
+
+  method public static int add(int,int)
+  max_stack 15
+  max_locals 15
+  {
+    sipush 40
+    istore 2
+    sipush 30
+    istore 3
+    iload 0
+    iload 1
+    iadd
+    iload 2
+    iadd
+    iload 3
+    iadd
+    sipush 10
+    iadd
+    sipush 20
+    iadd
+    getstatic int example.k
+    iadd
+    getstatic int example.j
+    iadd
+    ireturn
+  }
+
+
+  method public static void main(java.lang.String[])
+  max_stack 15
+  max_locals 15
+  {
+    getstatic int example.a
+    sipush 10
+    invokestatic int example.add(int,int) 
+    putstatic void example.c
+    getstatic int example.c
+    sipush 10
+        isub
+        ifgt L0
+        iconst_0
+        goto L1
+  L0: iconst_1
+  L1: 
+    ifeq L2else
+    getstatic java.io.PrintStream java.lang.System.out
+    getstatic int example.c
+    ineg
+    invokevirtual void java.io.PrintStream.print(int)
+    goto L3exit
+  L2else:
+    getstatic java.io.PrintStream java.lang.System.out
+    getstatic int example.c
+    invokevirtual void java.io.PrintStream.print(int)
+  L3exit:
+    getstatic java.io.PrintStream java.lang.System.out
+    ldc "Hello World"
+    invokevirtual void java.io.PrintStream.println(java.lang.String)
+    return
+  }
+}

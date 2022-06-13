@@ -1,0 +1,27 @@
+class whileTest
+{
+  field static int a = 1
+  field static int c
+
+  method public static void main(java.lang.String[])
+  max_stack 15
+  max_locals 15
+  {
+  L0begin:
+    getstatic int whileTest.a
+    sipush 10
+    isub
+    ifle L2
+    iconst_0
+    goto L3
+  L2: iconst_1
+  L3: ifeq L1end
+    getstatic int whileTest.a
+    sipush 1
+    iadd
+    putstatic int whileTest.a
+    goto L0begin
+  L1end:
+    return
+  }
+}

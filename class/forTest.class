@@ -1,0 +1,38 @@
+class forTest
+{
+  field static int n = 1
+  field static int c
+
+  method public static void main(java.lang.String[])
+  max_stack 15
+  max_locals 15
+  {
+    sipush 10
+    istore 0
+
+    sipush 1
+    istore 0
+  L0begin:
+    iload 0
+    sipush 10
+      isub
+      ifle L3
+      iconst_0
+      goto L2
+  L3: iconst_1
+  L2: 
+    ifeq L1end
+    getstatic java.io.PrintStream java.lang.System.out
+    getstatic int forTest.n
+    invokevirtual void java.io.PrintStream.print(int)
+    iload 0
+    sipush 1
+    iadd
+    istore 0
+    goto L0begin
+  L1end:
+    return
+  }
+
+
+}
