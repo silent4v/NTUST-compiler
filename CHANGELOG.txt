@@ -10,3 +10,4 @@
 * scanner.y 額外實現一些方法
   * genBranch 可以生成對應的 relation Template (使用 isub 實現)
   * 各規則部分撰寫對應的 asm-code generate
+* 修改預設的 stream 為 stdin ，可以使用 < 進行重新導向
